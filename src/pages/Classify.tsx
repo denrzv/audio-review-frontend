@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { fetchRandomFile, classifyFile, fetchClassificationHistory } from '../services/fileService';
-import { Button, Container, Typography, Box, Divider, Snackbar, Alert, List, ListItem, ListItemText, Select, MenuItem, Pagination } from '@mui/material';
+import { Button, Container, Typography, Box, Divider, Snackbar, Alert, List, ListItem, ListItemText, Pagination } from '@mui/material';
 import { AxiosError } from 'axios';
 
 interface AudioFile {
@@ -67,17 +67,8 @@ const ClassifyPage: React.FC = () => {
         }
     }, [audioFile]);
 
-    const reclassifyFile = async (file: AudioFile, category: string) => {
-        try {
-            await classifyFile(file.id, category);
-            setNotification("File reclassified successfully!");
-            setClassifiedFiles(prev =>
-                prev.map(f => (f.id === file.id ? { ...f, currentCategory: category } : f))
-            );
-        } catch (error) {
-            console.error('Failed to reclassify file:', error);
-            setError('An error occurred while reclassifying the file.');
-        }
+    const handleReclassify = (file: AudioFile) => {
+        setAudioFile(file);
     };
 
     useEffect(() => {
@@ -159,34 +150,36 @@ const ClassifyPage: React.FC = () => {
                     <Typography variant="h5" gutterBottom>Classification History</Typography>
                     <List sx={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #ddd', borderRadius: 1, padding: 2 }}>
                         {classifiedFiles.map((file) => (
-                            <ListItem key={file.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <ListItem
+                                key={`${file.id}-${file.classifiedAt}`}
+                                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                            >
                                 <Box sx={{ flexGrow: 1 }}>
-                                    <ListItemText primary={file.filename} secondary={
-                                        <>
-                                            Classified At: {new Date(file.classifiedAt || '').toLocaleString()}<br />
-                                            Current Category: <span style={{ color: categoryColors[file.currentCategory as keyof typeof categoryColors] }}>{file.currentCategory}</span>
-                                        </>
-                                    } />
+                                    <ListItemText
+                                        primary={file.filename}
+                                        secondary={
+                                            <>
+                                                Classified At: {new Date(file.classifiedAt || '').toLocaleString()}<br />
+                                                Current Category: <span style={{ color: categoryColors[file.currentCategory as keyof typeof categoryColors] }}>{file.currentCategory}</span>
+                                            </>
+                                        }
+                                    />
                                     <audio controls src={file.filePath} style={{ width: '100%' }}></audio>
                                 </Box>
-                                <Select
-                                    value={file.currentCategory}
-                                    onChange={(e) => reclassifyFile(file, e.target.value as string)}  // Pass file.id and new category correctly
+                                <Button
                                     variant="outlined"
-                                    sx={{ minWidth: 120, marginLeft: 2 }}
+                                    onClick={() => handleReclassify(file)}
+                                    sx={{ marginLeft: 2 }}
                                 >
-                                    <MenuItem value="Voice">Voice</MenuItem>
-                                    <MenuItem value="Silent">Silent</MenuItem>
-                                    <MenuItem value="Answering Machine">Answering Machine</MenuItem>
-                                    <MenuItem value="Undefined">Undefined</MenuItem>
-                                </Select>
+                                    Reclassify
+                                </Button>
                             </ListItem>
                         ))}
                     </List>
                     <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
                         <Pagination
                             count={totalPages}
-                            page={currentPage + 1} // Adjust for zero-based page index
+                            page={currentPage + 1}
                             onChange={(_, page) => setCurrentPage(page - 1)}
                             color="primary"
                         />

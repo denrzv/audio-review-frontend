@@ -18,7 +18,7 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    Checkbox
+    Checkbox, Box
 } from '@mui/material';
 import { fetchFiles, deleteFile, updateFile, deleteAllFiles, deleteMultipleFiles, updateMultipleFiles } from '../services/fileService';
 import { fetchCategories } from '../services/categoryService';
@@ -49,15 +49,16 @@ const FileListPage: React.FC = () => {
     const [openConfirmDialog, setOpenConfirmDialog] = useState<{ open: boolean, action: 'deleteAll' | 'deleteSelected', fileId?: number }>({ open: false, action: 'deleteAll' });
     const [openBulkEditDialog, setOpenBulkEditDialog] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [searchTerm, setSearchTerm] = useState<string>('');
 
     useEffect(() => {
-        loadFiles(page, rowsPerPage);
-        loadCategories();
-    }, [page, rowsPerPage]);
+        loadFiles(page, rowsPerPage, searchTerm);
+        loadCategories(); // Call this to fetch categories on component load
+    }, [page, rowsPerPage, searchTerm]);
 
-    const loadFiles = async (page: number, pageSize: number) => {
+    const loadFiles = async (page: number, pageSize: number, searchTerm: string = '') => {
         try {
-            const response = await fetchFiles(page, pageSize);
+            const response = await fetchFiles(page, pageSize, searchTerm);
             setFiles(response.data);
             setTotalFiles(response.total);
         } catch (error) {
@@ -160,9 +161,31 @@ const FileListPage: React.FC = () => {
         setPage(0);
     };
 
+
+
+    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(event.target.value);
+    };
+
+    const handleSearch = () => {
+        loadFiles(0, rowsPerPage, searchTerm); // Reset to page 0 when searching
+    };
+
+
+
     return (
         <TableContainer component={Paper} sx={{ marginTop: 3 }}>
             <Typography variant="h5" align="center" sx={{ padding: 2 }}>Uploaded Files</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 2 }}>
+                <TextField
+                    variant="outlined"
+                    label="Search Filename"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    sx={{ marginRight: 2 }}
+                />
+                <Button variant="contained" onClick={handleSearch}>Search</Button>
+            </Box>
             <Button
                 variant="contained"
                 color="error"
@@ -229,6 +252,7 @@ const FileListPage: React.FC = () => {
                             <TableCell>
                                 {editingFileId === file.id ? (
                                     <Select
+                                        variant="outlined"
                                         value={updatedFile.currentCategory || ''}
                                         onChange={(e) => setUpdatedFile({ ...updatedFile, currentCategory: e.target.value as string })}
                                         displayEmpty
@@ -310,6 +334,7 @@ const FileListPage: React.FC = () => {
                         Please select a category to apply to all selected files.
                     </DialogContentText>
                     <Select
+                        variant="outlined"
                         fullWidth
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}

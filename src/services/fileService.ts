@@ -50,10 +50,22 @@ export const fetchClassificationHistory = async (page = 0, pageSize = 10) => {
     }
 };
 
-export const fetchFiles = async (page: number, pageSize: number) => {
+// export const fetchFiles = async (page: number, pageSize: number) => {
+//     try {
+//         const response = await api.get('/admin/audio', {
+//             params: { page, pageSize }
+//         });
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error fetching files:', error);
+//         throw error;
+//     }
+// };
+
+export const fetchFiles = async (page: number, pageSize: number, filename: string = '') => {
     try {
         const response = await api.get('/admin/audio', {
-            params: { page, pageSize }
+            params: { page, pageSize, filename }
         });
         return response.data;
     } catch (error) {
