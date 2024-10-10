@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchDashboardStats } from '../services/fileService';
 import { Container, Typography, Card, CardContent, Grid, Box } from '@mui/material';
-import { Doughnut } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     ArcElement,
@@ -47,7 +47,6 @@ const Dashboard: React.FC = () => {
         return ((count / stats.totalFiles) * 100).toFixed(1);
     };
 
-
     const initialCategoryData = {
         labels: stats ? Object.keys(stats.filesByInitialCategory) : [],
         datasets: [
@@ -70,13 +69,13 @@ const Dashboard: React.FC = () => {
         ],
     };
 
-    const pieOptions: ChartOptions<'doughnut'> = {
+    const pieOptions: ChartOptions<'pie'> = {
         plugins: {
             datalabels: {
-                formatter: (value: number) => `${formatPercentages(value)}%`, // Use formatPercentages
+                formatter: (value: number) => `${formatPercentages(value)}%`,
                 color: '#fff',
                 font: {
-                    weight: 'bold' as 'bold' | 'normal' | 'bolder' | 'lighter' | number,
+                    weight: 'bold',
                 },
             },
         },
@@ -123,7 +122,7 @@ const Dashboard: React.FC = () => {
                             <CardContent>
                                 <Typography variant="h6" align="center">Files by Initial Category</Typography>
                                 <Box sx={{ maxWidth: 300, maxHeight: 300, margin: '0 auto' }}>
-                                    <Doughnut data={initialCategoryData} options={pieOptions} />
+                                    <Pie data={initialCategoryData} options={pieOptions} />
                                 </Box>
                             </CardContent>
                         </Card>
@@ -134,7 +133,7 @@ const Dashboard: React.FC = () => {
                             <CardContent>
                                 <Typography variant="h6" align="center">Files by Current Category</Typography>
                                 <Box sx={{ maxWidth: 300, maxHeight: 300, margin: '0 auto' }}>
-                                    <Doughnut data={currentCategoryData} options={pieOptions} />
+                                    <Pie data={currentCategoryData} options={pieOptions} />
                                 </Box>
                             </CardContent>
                         </Card>
