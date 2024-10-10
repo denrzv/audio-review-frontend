@@ -38,6 +38,18 @@ export const classifyFile = async (fileId: number, category: string): Promise<vo
     }
 };
 
+export const fetchClassificationHistory = async (page = 0, pageSize = 10) => {
+    try {
+        const response = await api.get('/classification/history', {
+            params: { page, pageSize },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching classification history:', error);
+        throw error;
+    }
+};
+
 export const fetchFiles = async (page: number, pageSize: number) => {
     try {
         const response = await api.get('/admin/audio', {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchRandomFile, classifyFile } from '../services/fileService';
-import { Button, Container, Typography, Box, Divider, Snackbar, Alert, List, ListItem, ListItemText, Select, MenuItem } from '@mui/material';
+import { fetchRandomFile, classifyFile, fetchClassificationHistory } from '../services/fileService';
+import { Button, Container, Typography, Box, Divider, Snackbar, Alert, List, ListItem, ListItemText, Select, MenuItem, Pagination, CircularProgress } from '@mui/material';
 import { AxiosError } from 'axios';
 
 interface AudioFile {
@@ -25,7 +25,11 @@ const ClassifyPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
     const [classifiedFiles, setClassifiedFiles] = useState<AudioFile[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const pageSize = 10; // Number of items per page
 
     const loadRandomFile = async () => {
         try {
@@ -39,6 +43,19 @@ const ClassifyPage: React.FC = () => {
         }
     };
 
+    const loadClassificationHistory = async (pageNumber: number) => {
+        setLoading(true);
+        try {
+            const { content, totalPages } = await fetchClassificationHistory(pageNumber - 1, pageSize);
+            setClassifiedFiles(content);
+            setTotalPages(totalPages);
+        } catch (error) {
+            console.error('Failed to load classification history:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleClassification = useCallback(async (category: string) => {
         if (audioFile) {
             try {
@@ -46,7 +63,7 @@ const ClassifyPage: React.FC = () => {
                 setNotification("Successfully classified!");
 
                 const updatedFile = { ...audioFile, currentCategory: category };
-                setClassifiedFiles(prev => [updatedFile, ...prev]);
+                setClassifiedFiles(prev => [updatedFile, ...prev.slice(0, pageSize - 1)]);
                 setAudioFile(null);
                 await loadRandomFile();
             } catch (error) {
@@ -69,8 +86,14 @@ const ClassifyPage: React.FC = () => {
         }
     };
 
+    const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+        setPage(value);
+        loadClassificationHistory(value);
+    };
+
     useEffect(() => {
         loadRandomFile();
+        loadClassificationHistory(page);
     }, []);
 
     return (
@@ -112,30 +135,41 @@ const ClassifyPage: React.FC = () => {
                 <Box sx={{ marginTop: 5 }}>
                     <Typography variant="h5" gutterBottom>Classification History</Typography>
                     <List sx={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #ddd', borderRadius: 1, padding: 2 }}>
-                        {classifiedFiles.map((file) => (
-                            <ListItem key={file.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ flexGrow: 1 }}>
-                                    <ListItemText primary={file.filename} secondary={
-                                        <>
-                                            Current Category: <span style={{ color: categoryColors[file.currentCategory as keyof typeof categoryColors] }}>{file.currentCategory}</span>
-                                        </>
-                                    } />
-                                    <audio controls src={file.filePath} style={{ width: '100%' }}></audio>
-                                </Box>
-                                <Select
-                                    value={file.currentCategory}
-                                    onChange={(e) => reclassifyFile(file, e.target.value)}
-                                    variant="outlined"
-                                    sx={{ minWidth: 120, marginLeft: 2 }}
-                                >
-                                    <MenuItem value="Voice">Voice</MenuItem>
-                                    <MenuItem value="Silent">Silent</MenuItem>
-                                    <MenuItem value="Answering Machine">Answering Machine</MenuItem>
-                                    <MenuItem value="Undefined">Undefined</MenuItem>
-                                </Select>
-                            </ListItem>
-                        ))}
+                        {loading ? (
+                            <CircularProgress />
+                        ) : (
+                            classifiedFiles.map((file) => (
+                                <ListItem key={file.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Box sx={{ flexGrow: 1 }}>
+                                        <ListItemText primary={file.filename} secondary={
+                                            <>
+                                                Current Category: <span style={{ color: categoryColors[file.currentCategory as keyof typeof categoryColors] }}>{file.currentCategory}</span>
+                                            </>
+                                        } />
+                                        <audio controls src={file.filePath} style={{ width: '100%' }}></audio>
+                                    </Box>
+                                    <Select
+                                        value={file.currentCategory}
+                                        onChange={(e) => reclassifyFile(file, e.target.value)}
+                                        variant="outlined"
+                                        sx={{ minWidth: 120, marginLeft: 2 }}
+                                    >
+                                        <MenuItem value="Voice">Voice</MenuItem>
+                                        <MenuItem value="Silent">Silent</MenuItem>
+                                        <MenuItem value="Answering Machine">Answering Machine</MenuItem>
+                                        <MenuItem value="Undefined">Undefined</MenuItem>
+                                    </Select>
+                                </ListItem>
+                            ))
+                        )}
                     </List>
+                    <Pagination
+                        count={totalPages}
+                        page={page}
+                        onChange={handlePageChange}
+                        color="primary"
+                        sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}
+                    />
                 </Box>
             )}
 
