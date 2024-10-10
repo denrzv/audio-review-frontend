@@ -62,13 +62,28 @@ export const fetchFiles = async (page: number, pageSize: number) => {
     }
 };
 
-export const deleteFile = async (id) => {
-    await api.delete(`/admin/audio/${id}`);
+export const deleteFile = async (id: number): Promise<void> => {
+    try {
+        await api.delete(`/admin/audio/${id}`);
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        throw error;
+    }
 };
 
-export const updateFile = async (id, updatedFile) => {
-    const response = await api.put(`/admin/audio/${id}`, updatedFile);
-    return response.data;
+interface UpdatedFileData {
+    currentCategory?: string;
+    filename?: string;
+}
+
+export const updateFile = async (id: number, updatedFile: UpdatedFileData): Promise<void> => {
+    try {
+        const response = await api.put(`/admin/audio/${id}`, updatedFile);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating file:', error);
+        throw error;
+    }
 };
 
 export const fetchDashboardStats = async () => {
@@ -85,16 +100,25 @@ export const deleteAllFiles = async (): Promise<void> => {
     }
 };
 
-
-export const deleteMultipleFiles = async (fileIds: number[]) => {
-    await api.delete('/admin/audio/multiple', {
-        data: { ids: fileIds },
-    });
+export const deleteMultipleFiles = async (fileIds: number[]): Promise<void> => {
+    try {
+        await api.delete('/admin/audio/multiple', {
+            data: { ids: fileIds },
+        });
+    } catch (error) {
+        console.error('Error deleting multiple files:', error);
+        throw error;
+    }
 };
 
-export const updateMultipleFiles = async (fileIds: number[], currentCategory: string) => {
-    await api.put('/admin/audio/multiple', {
-        ids: fileIds,
-        currentCategory,
-    });
+export const updateMultipleFiles = async (fileIds: number[], currentCategory: string): Promise<void> => {
+    try {
+        await api.put('/admin/audio/multiple', {
+            ids: fileIds,
+            currentCategory,
+        });
+    } catch (error) {
+        console.error('Error updating multiple files:', error);
+        throw error;
+    }
 };
