@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { fetchRandomFile, classifyFile } from '../services/fileService';
-import { Button, Container, Typography, Box, Divider, Snackbar, Alert } from '@mui/material';
+import { Button, Container, Typography, Box, Divider, Snackbar, Alert, List, ListItem, ListItemText, Select, MenuItem } from '@mui/material';
 import { AxiosError } from 'axios';
 
 interface AudioFile {
@@ -13,11 +13,18 @@ interface AudioFile {
     currentCategory: string;
 }
 
+const categoryColors: Record<'Voice' | 'Silent' | 'Answering Machine' | 'Undefined', string> = {
+    Voice: '#4CAF50',
+    Silent: '#FFEB3B',
+    "Answering Machine": '#F44336',
+    Undefined: '#BDBDBD'
+};
+
 const ClassifyPage: React.FC = () => {
     const [audioFile, setAudioFile] = useState<AudioFile | null>(null);
-    const [previousAudioFile, setPreviousAudioFile] = useState<AudioFile | null>(null); // Store last classified file
     const [error, setError] = useState<string | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
+    const [classifiedFiles, setClassifiedFiles] = useState<AudioFile[]>([]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const loadRandomFile = async () => {
@@ -28,11 +35,7 @@ const ClassifyPage: React.FC = () => {
         } catch (error) {
             const axiosError = error as AxiosError;
             console.error('Failed to load file:', axiosError.message);
-            if (axiosError.response?.status === 400) {
-                setError('No unclassified files are left to listen to.');
-            } else {
-                setError('An error occurred while loading the file. Please try again later.');
-            }
+            setError(axiosError.response?.status === 400 ? 'No unclassified files are left to listen to.' : 'An error occurred while loading the file. Please try again later.');
         }
     };
 
@@ -42,8 +45,9 @@ const ClassifyPage: React.FC = () => {
                 await classifyFile(audioFile.id, category);
                 setNotification("Successfully classified!");
 
-                // Store the current file as the previous file before loading a new one
-                setPreviousAudioFile(audioFile);
+                const updatedFile = { ...audioFile, currentCategory: category };
+                setClassifiedFiles(prev => [updatedFile, ...prev]);
+                setAudioFile(null);
                 await loadRandomFile();
             } catch (error) {
                 console.error('Classification failed:', error);
@@ -52,10 +56,16 @@ const ClassifyPage: React.FC = () => {
         }
     }, [audioFile]);
 
-    const loadPreviousFile = () => {
-        if (previousAudioFile) {
-            setAudioFile(previousAudioFile);
-            setPreviousAudioFile(null); // Clear after loading
+    const reclassifyFile = async (file: AudioFile, category: string) => {
+        try {
+            await classifyFile(file.id, category);
+            setNotification("File reclassified successfully!");
+            setClassifiedFiles(prev =>
+                prev.map(f => (f.id === file.id ? { ...f, currentCategory: category } : f))
+            );
+        } catch (error) {
+            console.error('Failed to reclassify file:', error);
+            setError('An error occurred while reclassifying the file.');
         }
     };
 
@@ -63,92 +73,72 @@ const ClassifyPage: React.FC = () => {
         loadRandomFile();
     }, []);
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            switch (event.key.toLowerCase()) {
-                case 'v':
-                    handleClassification('Voice');
-                    break;
-                case 's':
-                    handleClassification('Silent');
-                    break;
-                case 'a':
-                    handleClassification('Answering Machine');
-                    break;
-                case 'u':
-                    handleClassification('Undefined');
-                    break;
-                case ' ':
-                    event.preventDefault();
-                    if (audioRef.current) {
-                        if (audioRef.current.paused) {
-                            audioRef.current.play();
-                        } else {
-                            audioRef.current.pause();
-                        }
-                    }
-                    break;
-                default:
-                    break;
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [handleClassification]);
-
     return (
         <Container>
             <Typography variant="h4" gutterBottom>Classify Audio File</Typography>
             {error ? (
-                <Typography variant="h6" color="error" align="center" sx={{ marginTop: 4 }}>
-                    {error}
-                </Typography>
+                <Typography variant="h6" color="error" align="center" sx={{ marginTop: 4 }}>{error}</Typography>
             ) : (
                 audioFile && (
                     <div>
                         <Typography variant="h6">File Name: {audioFile.filename}</Typography>
-                        <Typography variant="subtitle1" color="textSecondary">Initial Category: {audioFile.initialCategory}</Typography>
+                        <Typography variant="subtitle1" color="textSecondary">
+                            Initial Category: <span style={{ color: categoryColors[audioFile.initialCategory as keyof typeof categoryColors] }}>{audioFile.initialCategory}</span>
+                        </Typography>
+                        <Typography variant="subtitle1" color="textSecondary">
+                            Current Category: <span style={{ color: categoryColors[audioFile.currentCategory as keyof typeof categoryColors] }}>{audioFile.currentCategory}</span>
+                        </Typography>
                         <audio ref={audioRef} controls src={audioFile?.filePath || ''} style={{ marginTop: 10, marginBottom: 10 }}></audio>
                         <div>
-                            <Button variant="contained" onClick={() => handleClassification('Voice')} style={{ marginRight: 10 }}>Voice (V)</Button>
-                            <Button variant="contained" onClick={() => handleClassification('Silent')} style={{ marginRight: 10 }}>Silent (S)</Button>
-                            <Button variant="contained" onClick={() => handleClassification('Answering Machine')} style={{ marginRight: 10 }}>Answering Machine (A)</Button>
-                            <Button variant="contained" onClick={() => handleClassification('Undefined')} style={{ marginRight: 10 }}>Undefined (U)</Button>
-
-                            {/* Button to load the previous file if it exists */}
-                            {previousAudioFile && (
-                                <Button variant="outlined" color="primary" onClick={loadPreviousFile}>
-                                    Previous File
-                                </Button>
-                            )}
+                            <Button variant="contained" onClick={() => handleClassification('Voice')} style={{ backgroundColor: categoryColors.Voice, color: '#fff', marginRight: 10 }}>Voice (V)</Button>
+                            <Button variant="contained" onClick={() => handleClassification('Silent')} style={{ backgroundColor: categoryColors.Silent, color: '#fff', marginRight: 10 }}>Silent (S)</Button>
+                            <Button variant="contained" onClick={() => handleClassification('Answering Machine')} style={{ backgroundColor: categoryColors["Answering Machine"], color: '#fff', marginRight: 10 }}>Answering Machine (A)</Button>
+                            <Button variant="contained" onClick={() => handleClassification('Undefined')} style={{ backgroundColor: categoryColors.Undefined, color: '#fff', marginRight: 10 }}>Undefined (U)</Button>
                         </div>
-
-                        {/* Shortcut Information */}
                         <Box sx={{ marginTop: 4, padding: 2, border: '1px solid #ddd', borderRadius: 1, backgroundColor: '#f9f9f9' }}>
                             <Typography variant="h6" gutterBottom>Shortcut Keys</Typography>
                             <Divider />
-                            <Typography variant="body2" sx={{ marginTop: 1 }}>
-                                <strong>Space</strong> - Play/Pause audio
-                            </Typography>
-                            <Typography variant="body2">
-                                <strong>V</strong> - Classify as Voice
-                            </Typography>
-                            <Typography variant="body2">
-                                <strong>S</strong> - Classify as Silent
-                            </Typography>
-                            <Typography variant="body2">
-                                <strong>A</strong> - Classify as Answering Machine
-                            </Typography>
-                            <Typography variant="body2">
-                                <strong>U</strong> - Classify as Undefined
-                            </Typography>
+                            <Typography variant="body2" sx={{ marginTop: 1 }}><strong>Space</strong> - Play/Pause audio</Typography>
+                            <Typography variant="body2"><strong>V</strong> - Classify as Voice</Typography>
+                            <Typography variant="body2"><strong>S</strong> - Classify as Silent</Typography>
+                            <Typography variant="body2"><strong>A</strong> - Classify as Answering Machine</Typography>
+                            <Typography variant="body2"><strong>U</strong> - Classify as Undefined</Typography>
                         </Box>
                     </div>
                 )
             )}
 
-            {/* Success Notification Snackbar */}
+            {classifiedFiles.length > 0 && (
+                <Box sx={{ marginTop: 5 }}>
+                    <Typography variant="h5" gutterBottom>Classification History</Typography>
+                    <List sx={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #ddd', borderRadius: 1, padding: 2 }}>
+                        {classifiedFiles.map((file) => (
+                            <ListItem key={file.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box sx={{ flexGrow: 1 }}>
+                                    <ListItemText primary={file.filename} secondary={
+                                        <>
+                                            Current Category: <span style={{ color: categoryColors[file.currentCategory as keyof typeof categoryColors] }}>{file.currentCategory}</span>
+                                        </>
+                                    } />
+                                    <audio controls src={file.filePath} style={{ width: '100%' }}></audio>
+                                </Box>
+                                <Select
+                                    value={file.currentCategory}
+                                    onChange={(e) => reclassifyFile(file, e.target.value)}
+                                    variant="outlined"
+                                    sx={{ minWidth: 120, marginLeft: 2 }}
+                                >
+                                    <MenuItem value="Voice">Voice</MenuItem>
+                                    <MenuItem value="Silent">Silent</MenuItem>
+                                    <MenuItem value="Answering Machine">Answering Machine</MenuItem>
+                                    <MenuItem value="Undefined">Undefined</MenuItem>
+                                </Select>
+                            </ListItem>
+                        ))}
+                    </List>
+                </Box>
+            )}
+
             <Snackbar
                 open={!!notification}
                 autoHideDuration={3000}
