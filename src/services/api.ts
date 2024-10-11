@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const api = axios.create({
-    baseURL: 'http://localhost:8080', // Your backend URL
+    baseURL,
 });
 
 api.interceptors.request.use(
@@ -14,5 +16,15 @@ api.interceptors.request.use(
     },
     (error) => Promise.reject(error)
 );
+
+export const checkBackendHealth = async () => {
+    try {
+        const response = await api.get('/actuator/health');
+        return response.status === 200;
+    } catch (error) {
+        console.error(error);
+        return false;
+    }
+};
 
 export default api;
