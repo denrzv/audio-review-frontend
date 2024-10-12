@@ -17,14 +17,4 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-export const checkBackendHealth = async () => {
-    try {
-        const response = await api.get('/actuator/health');
-        return response.status === 200;
-    } catch (error) {
-        console.error(error);
-        return false;
-    }
-};
-
 export default api;
