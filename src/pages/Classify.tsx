@@ -51,7 +51,7 @@ const ClassifyPage: React.FC = () => {
         try {
             const response = await fetchClassificationHistory(page, 10);
             setClassifiedFiles(response.content);
-            setTotalPages(response.totalPages);
+            setTotalPages(response.page.totalPages); // Access totalPages correctly from the nested page object
         } catch (error) {
             console.error('Failed to fetch classification history:', error);
         }
