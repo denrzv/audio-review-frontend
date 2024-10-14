@@ -171,7 +171,41 @@ const FileListPage: React.FC = () => {
         loadFiles(0, rowsPerPage, searchTerm); // Reset to page 0 when searching
     };
 
+    const exportToCSV = async () => {
+        try {
+            const response = await fetchFiles(0, 0, '', true); // Pass `noPagination` flag
+            const allFiles = response.data;
 
+            if (allFiles.length === 0) {
+                return;
+            }
+
+            const header = ['ID', 'Filename', 'Initial Category', 'Current Category', 'Uploaded By', 'Uploaded At'];
+            const rows = allFiles.map((file: FileData) => [
+                file.id,
+                file.filename,
+                file.initialCategory,
+                file.currentCategory,
+                file.uploadedBy,
+                new Date(file.uploadedAt).toLocaleString()
+            ]);
+
+            const csvContent =
+                [header, ...rows]
+                    .map(e => e.join(','))
+                    .join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'files_data.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Failed to export files:', error);
+        }
+    };
 
     return (
         <TableContainer component={Paper} sx={{ marginTop: 3 }}>
@@ -186,6 +220,14 @@ const FileListPage: React.FC = () => {
                 />
                 <Button variant="contained" onClick={handleSearch}>Search</Button>
             </Box>
+            <Button
+                variant="contained"
+                color="primary"
+                onClick={exportToCSV}  // Trigger CSV export
+                sx={{ margin: 2 }}
+            >
+                Export to CSV
+            </Button>
             <Button
                 variant="contained"
                 color="error"

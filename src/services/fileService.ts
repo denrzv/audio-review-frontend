@@ -50,10 +50,15 @@ export const fetchClassificationHistory = async (page = 0, pageSize = 10) => {
     }
 };
 
-export const fetchFiles = async (page: number, pageSize: number, filename: string = '') => {
+export const fetchFiles = async (
+    page: number,
+    pageSize: number,
+    filename: string = '',
+    noPagination: boolean = false
+) => {
     try {
         const response = await api.get('/admin/audio', {
-            params: { page, pageSize, filename }
+            params: { page, pageSize, filename, noPagination }
         });
         return response.data;
     } catch (error) {
