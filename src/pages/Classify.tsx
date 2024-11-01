@@ -87,6 +87,14 @@ const ClassifyPage: React.FC = () => {
     }, [currentPage, loadClassificationHistory]);
 
     useEffect(() => {
+        if (audioFile && audioRef.current) {
+            audioRef.current.play().catch((error) => {
+                console.error('Error playing audio:', error);
+            });
+        }
+    }, [audioFile]);
+
+    useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             switch (event.key.toLowerCase()) {
                 case ' ':
